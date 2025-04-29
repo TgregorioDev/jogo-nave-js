@@ -11,7 +11,7 @@ let score = 0;
 let lastScoreForExtraMeteor = 0;
 let stars = [];
 let isMobile = false;
-let mobileFactor = 1;
+let mobileMeteorFactor = 1;
 
 function preload() {
   laserSound = loadSound("laser.mp3");
@@ -22,10 +22,8 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileFactor = isMobile ? 1.5 : 1;
-
+  mobileMeteorFactor = isMobile ? 1.8 : 1; // Aumento extra no fator
   ship = new Ship();
 
   for (let i = 0; i < 200; i++) {
@@ -37,7 +35,7 @@ function setup() {
     });
   }
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     meteors.push(new Meteor());
   }
 }
@@ -45,6 +43,7 @@ function setup() {
 function draw() {
   background(0);
 
+  // Estrelas
   noStroke();
   for (let star of stars) {
     fill(star.brightness);
@@ -64,13 +63,12 @@ function draw() {
 
     textSize(18);
     text("📱 Controles no Celular:", width / 2, height / 2);
-    text("Toque na parte central da tela para atirar", width / 2, height / 2 + 25);
-    text("Toque no lado esquerdo para mover à esquerda", width / 2, height / 2 + 45);
-    text("Toque no lado direito para mover à direita", width / 2, height / 2 + 65);
+    text("Toque no meio para atirar", width / 2, height / 2 + 25);
+    text("Toque nas bordas laterais para mover", width / 2, height / 2 + 45);
 
-    text("⌨️ Controles no Teclado:", width / 2, height / 2 + 100);
-    text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 120);
-    text("Barra de espaço para atirar", width / 2, height / 2 + 140);
+    text("⌨️ Controles no Teclado:", width / 2, height / 2 + 80);
+    text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 100);
+    text("Barra de espaço para atirar", width / 2, height / 2 + 120);
     return;
   }
 
@@ -111,20 +109,21 @@ function draw() {
         let pontos = round((6 - meteors[j].speed) + (40 - meteors[j].r) / 5);
         score += pontos;
 
+        // Aumenta a velocidade dos meteoros com frequência maior
         if (score % 10 === 0) {
           for (let m of meteors) {
-            m.speed = min(m.speed + 0.3, 10);
+            m.speed = min(m.speed + 0.5, 12); // Mais rápido
           }
         }
 
-        if (score - lastScoreForExtraMeteor >= 15) {
+        if (score - lastScoreForExtraMeteor >= 5) {
           meteors.push(new Meteor(true));
           lastScoreForExtraMeteor = score;
         }
 
         meteors.splice(j, 1);
         meteors.push(new Meteor());
-        bullets.splice(i, 1); // Tiro também some
+        bullets.splice(i, 1);
         break;
       }
     }
@@ -169,21 +168,18 @@ function touchStarted() {
       return false;
     }
 
-    if (gameOver) {
+    if (gameOver && t.y < height / 2) {
       resetGame();
       return false;
     }
 
-    let leftBoundary = width * 0.2;
-    let rightBoundary = width * 0.8;
-
-    if (t.x < leftBoundary) {
-      ship.move(-1);
-    } else if (t.x > rightBoundary) {
-      ship.move(1);
-    } else {
+    if (t.x > width * 0.25 && t.x < width * 0.75) {
       bullets.push(new Bullet(ship.x, ship.y));
       if (laserSound) laserSound.play();
+    } else if (t.x < width * 0.25) {
+      ship.move(-1);
+    } else {
+      ship.move(1);
     }
   }
   return false;
@@ -206,7 +202,7 @@ function startGame() {
   meteors = [];
   lastScoreForExtraMeteor = 0;
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     meteors.push(new Meteor());
   }
   ship = new Ship();
@@ -219,7 +215,7 @@ function resetGame() {
   meteors = [];
   lastScoreForExtraMeteor = 0;
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     meteors.push(new Meteor());
   }
   ship = new Ship();
@@ -243,21 +239,17 @@ class Ship {
   }
 
   update() {
-    this.x += this.direction * 7 * mobileFactor;
+    this.x += this.direction * (isMobile ? 10 : 6); // aumento de velocidade
     this.x = constrain(this.x, this.size, width - this.size);
   }
 }
 
 class Meteor {
   constructor(aimAtShip = false) {
-    if (aimAtShip) {
-      this.x = ship.x + random(-100, 100);
-    } else {
-      this.x = random(width);
-    }
+    this.x = aimAtShip ? ship.x + random(-100, 100) : random(width);
     this.y = random(-100, -40);
-    this.r = random(20, 40) * mobileFactor;
-    this.speed = random(2, 5) * mobileFactor;
+    this.r = random(20, 40) * mobileMeteorFactor;
+    this.speed = random(2, 5) * mobileMeteorFactor;
   }
 
   move() {
@@ -270,8 +262,8 @@ class Meteor {
   reset() {
     this.x = random(width);
     this.y = random(-100, -40);
-    this.r = random(20, 40) * mobileFactor;
-    this.speed = random(2, 5) * mobileFactor;
+    this.r = random(20, 40) * mobileMeteorFactor;
+    this.speed = random(2, 5) * mobileMeteorFactor;
   }
 
   show() {
@@ -293,7 +285,7 @@ class Bullet {
   }
 
   move() {
-    this.y -= 7 * mobileFactor;
+    this.y -= isMobile ? 14 : 9;
   }
 
   show() {
