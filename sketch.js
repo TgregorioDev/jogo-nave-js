@@ -23,9 +23,8 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
 
-  // Detecta se é celular
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileMeteorFactor = isMobile ? 2.5 : 1;
+  mobileMeteorFactor = isMobile ? 2 : 1; // meteoro e tiro mais rápidos no celular
 
   ship = new Ship();
 
@@ -46,7 +45,6 @@ function setup() {
 function draw() {
   background(0);
 
-  // Estrelas
   noStroke();
   for (let star of stars) {
     fill(star.brightness);
@@ -115,7 +113,7 @@ function draw() {
 
         if (score % 10 === 0) {
           for (let m of meteors) {
-            m.speed = min(m.speed + 0.3, 10 * mobileMeteorFactor);
+            m.speed = min(m.speed + 0.3, 10);
           }
         }
 
@@ -124,9 +122,8 @@ function draw() {
           lastScoreForExtraMeteor = score;
         }
 
-        meteors.splice(j, 1);
-        meteors.push(new Meteor());
-        bullets.splice(i, 1);
+        meteors.splice(j, 1); // Remove meteoro atingido
+        bullets.splice(i, 1); // Remove tiro após impacto
         break;
       }
     }
@@ -242,7 +239,8 @@ class Ship {
   }
 
   update() {
-    this.x += this.direction * 5;
+    const speed = isMobile ? 10 : 6; // velocidade aumentada
+    this.x += this.direction * speed;
     this.x = constrain(this.x, this.size, width - this.size);
   }
 }
@@ -289,7 +287,7 @@ class Bullet {
     this.x = x;
     this.y = y;
     this.r = 5;
-    this.speed = isMobile ? 15 : 7;
+    this.speed = isMobile ? 15 : 7; // velocidade maior no celular
   }
 
   move() {
@@ -307,4 +305,3 @@ class Bullet {
     return d < this.r + meteor.r;
   }
 }
-
