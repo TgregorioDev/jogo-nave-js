@@ -11,7 +11,7 @@ let score = 0;
 let lastScoreForExtraMeteor = 0;
 let stars = [];
 let isMobile = false;
-let mobileMeteorFactor = 1;
+let mobileFactor = 1;
 
 function preload() {
   laserSound = loadSound("laser.mp3");
@@ -23,9 +23,8 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
 
-  // Detecta se é celular
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileMeteorFactor = isMobile ? 1.5 : 1; // aumenta 50% em celulares
+  mobileFactor = isMobile ? 1.5 : 1;
 
   ship = new Ship();
 
@@ -46,7 +45,6 @@ function setup() {
 function draw() {
   background(0);
 
-  // Estrelas
   noStroke();
   for (let star of stars) {
     fill(star.brightness);
@@ -66,9 +64,9 @@ function draw() {
 
     textSize(18);
     text("📱 Controles no Celular:", width / 2, height / 2);
-    text("Toque no lado esquerdo da tela para mover à esquerda", width / 2, height / 2 + 25);
-    text("Toque no lado direito da tela para mover à direita", width / 2, height / 2 + 45);
-    text("Toque na parte inferior para atirar", width / 2, height / 2 + 65);
+    text("Toque na parte central da tela para atirar", width / 2, height / 2 + 25);
+    text("Toque no lado esquerdo para mover à esquerda", width / 2, height / 2 + 45);
+    text("Toque no lado direito para mover à direita", width / 2, height / 2 + 65);
 
     text("⌨️ Controles no Teclado:", width / 2, height / 2 + 100);
     text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 120);
@@ -126,7 +124,7 @@ function draw() {
 
         meteors.splice(j, 1);
         meteors.push(new Meteor());
-        bullets.splice(i, 1); // Remover o tiro que acertou
+        bullets.splice(i, 1); // Tiro também some
         break;
       }
     }
@@ -171,29 +169,28 @@ function touchStarted() {
       return false;
     }
 
-    if (gameOver && t.y < height / 3) {
+    if (gameOver) {
       resetGame();
       return false;
     }
 
-    // Detecção de toque para atirar
-    if (t.y > height / 2) { // Se o toque for na parte inferior da tela
+    let leftBoundary = width * 0.2;
+    let rightBoundary = width * 0.8;
+
+    if (t.x < leftBoundary) {
+      ship.move(-1);
+    } else if (t.x > rightBoundary) {
+      ship.move(1);
+    } else {
       bullets.push(new Bullet(ship.x, ship.y));
       if (laserSound) laserSound.play();
-    }
-
-    // Detecção de toque para movimentação (lado esquerdo ou direito)
-    else if (t.x < width / 2) { // Lado esquerdo da tela
-      ship.move(-1); // Move para a esquerda
-    } else { // Lado direito da tela
-      ship.move(1); // Move para a direita
     }
   }
   return false;
 }
 
 function touchEnded() {
-  ship.move(0); // Para de mover quando o toque termina
+  ship.move(0);
 }
 
 function windowResized() {
@@ -246,7 +243,7 @@ class Ship {
   }
 
   update() {
-    this.x += this.direction * 7; // Aumento da velocidade de movimentação
+    this.x += this.direction * 7 * mobileFactor;
     this.x = constrain(this.x, this.size, width - this.size);
   }
 }
@@ -259,8 +256,8 @@ class Meteor {
       this.x = random(width);
     }
     this.y = random(-100, -40);
-    this.r = random(20, 40) * mobileMeteorFactor;
-    this.speed = random(2, 5) * mobileMeteorFactor;
+    this.r = random(20, 40) * mobileFactor;
+    this.speed = random(2, 5) * mobileFactor;
   }
 
   move() {
@@ -273,8 +270,8 @@ class Meteor {
   reset() {
     this.x = random(width);
     this.y = random(-100, -40);
-    this.r = random(20, 40) * mobileMeteorFactor;
-    this.speed = random(2, 5) * mobileMeteorFactor;
+    this.r = random(20, 40) * mobileFactor;
+    this.speed = random(2, 5) * mobileFactor;
   }
 
   show() {
@@ -296,7 +293,7 @@ class Bullet {
   }
 
   move() {
-    this.y -= 10; // Aumento da velocidade do tiro
+    this.y -= 7 * mobileFactor;
   }
 
   show() {
