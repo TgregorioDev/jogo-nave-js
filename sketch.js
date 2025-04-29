@@ -10,16 +10,23 @@ let gameStarted = false;
 let score = 0;
 let lastScoreForExtraMeteor = 0;
 let stars = [];
+let isMobile = false;
+let mobileMeteorFactor = 1;
 
 function preload() {
   laserSound = loadSound("laser.mp3");
   explosionSound = loadSound("explosion.mp3");
   meteorImage = loadImage("meteoro.png");
-  spaceshipImage = loadImage("spaceship.png"); // ⬅️ Carrega imagem da nave
+  spaceshipImage = loadImage("spaceship.png");
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+
+  // Detecta se é celular
+  isMobile = /Mobi/.test(navigator.userAgent);
+  mobileMeteorFactor = isMobile ? 1.5 : 1; // aumenta 50% em celulares
+
   ship = new Ship();
 
   for (let i = 0; i < 200; i++) {
@@ -248,8 +255,8 @@ class Meteor {
       this.x = random(width);
     }
     this.y = random(-100, -40);
-    this.r = random(20, 40);
-    this.speed = random(2, 5);
+    this.r = random(20, 40) * mobileMeteorFactor;
+    this.speed = random(2, 5) * mobileMeteorFactor;
   }
 
   move() {
@@ -262,8 +269,8 @@ class Meteor {
   reset() {
     this.x = random(width);
     this.y = random(-100, -40);
-    this.r = random(20, 40);
-    this.speed = random(2, 5);
+    this.r = random(20, 40) * mobileMeteorFactor;
+    this.speed = random(2, 5) * mobileMeteorFactor;
   }
 
   show() {
