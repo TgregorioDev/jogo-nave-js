@@ -25,7 +25,7 @@ function setup() {
 
   // Detecta se é celular
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileMeteorFactor = isMobile ? 1.5 : 1; // aumenta 50% em celulares
+  mobileMeteorFactor = isMobile ? 2.5 : 1;
 
   ship = new Ship();
 
@@ -115,7 +115,7 @@ function draw() {
 
         if (score % 10 === 0) {
           for (let m of meteors) {
-            m.speed = min(m.speed + 0.3, 10);
+            m.speed = min(m.speed + 0.3, 10 * mobileMeteorFactor);
           }
         }
 
@@ -289,10 +289,11 @@ class Bullet {
     this.x = x;
     this.y = y;
     this.r = 5;
+    this.speed = isMobile ? 15 : 7;
   }
 
   move() {
-    this.y -= 7;
+    this.y -= this.speed;
   }
 
   show() {
@@ -306,3 +307,4 @@ class Bullet {
     return d < this.r + meteor.r;
   }
 }
+
