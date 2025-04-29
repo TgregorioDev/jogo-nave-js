@@ -1,8 +1,6 @@
 let ship;
 let meteors = [];
 let bullets = [];
-let explosions = [];
-let explosionImage;
 let explosionSound;
 let laserSound;
 let meteorImage;
@@ -13,21 +11,19 @@ let score = 0;
 let lastScoreForExtraMeteor = 0;
 let stars = [];
 let isMobile = false;
-let mobileFactor = 1;
+let mobileMeteorFactor = 1;
 
 function preload() {
   laserSound = loadSound("laser.mp3");
   explosionSound = loadSound("explosion.mp3");
   meteorImage = loadImage("meteoro.png");
   spaceshipImage = loadImage("spaceship.png");
-  explosionImage = loadImage("explode.png"); // imagem que você enviou
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileFactor = isMobile ? 1.5 : 1;
-
+  mobileMeteorFactor = isMobile ? 1.8 : 1; // Aumento extra no fator
   ship = new Ship();
 
   for (let i = 0; i < 200; i++) {
@@ -63,10 +59,16 @@ function draw() {
     fill(255);
     textAlign(CENTER);
     textSize(28);
-    text("Toque no centro da tela para atirar", width / 2, height / 2 - 40);
-    text("Toque nas bordas para mover", width / 2, height / 2);
+    text("Clique na tela ou pressione ESPAÇO para iniciar", width / 2, height / 2 - 60);
+
     textSize(18);
-    text("Pressione ESPAÇO para jogar no teclado", width / 2, height / 2 + 40);
+    text("📱 Controles no Celular:", width / 2, height / 2);
+    text("Toque no meio para atirar", width / 2, height / 2 + 25);
+    text("Toque nas bordas laterais para mover", width / 2, height / 2 + 45);
+
+    text("⌨️ Controles no Teclado:", width / 2, height / 2 + 80);
+    text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 100);
+    text("Barra de espaço para atirar", width / 2, height / 2 + 120);
     return;
   }
 
@@ -75,9 +77,10 @@ function draw() {
     textSize(36);
     textAlign(CENTER);
     text("Game Over", width / 2, height / 2);
+
     fill(255);
     textSize(16);
-    text("Toque no centro ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
+    text("Toque para atirar ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
     text("Score: " + score, width / 2, height / 2 + 70);
     return;
   }
@@ -103,18 +106,17 @@ function draw() {
       if (b.hits(meteors[j])) {
         explosionSound.play();
 
-        // Adiciona explosão
-        explosions.push(new Explosion(meteors[j].x, meteors[j].y));
+        let pontos = round((6 - meteors[j].speed) + (40 - meteors[j].r) / 5);
+        score += pontos;
 
-        score += 10;
-
+        // Aumenta a velocidade dos meteoros com frequência maior
         if (score % 10 === 0) {
           for (let m of meteors) {
-            m.speed = min(m.speed + 0.3, 10);
+            m.speed = min(m.speed + 0.5, 12); // Mais rápido
           }
         }
 
-        if (score - lastScoreForExtraMeteor >= 15) {
+        if (score - lastScoreForExtraMeteor >= 5) {
           meteors.push(new Meteor(true));
           lastScoreForExtraMeteor = score;
         }
@@ -124,15 +126,6 @@ function draw() {
         bullets.splice(i, 1);
         break;
       }
-    }
-  }
-
-  // Atualiza e mostra explosões
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    explosions[i].update();
-    explosions[i].show();
-    if (explosions[i].finished()) {
-      explosions.splice(i, 1);
     }
   }
 
@@ -175,15 +168,15 @@ function touchStarted() {
       return false;
     }
 
-    if (gameOver) {
+    if (gameOver && t.y < height / 2) {
       resetGame();
       return false;
     }
 
-    if (t.x > width * 0.3 && t.x < width * 0.7) {
+    if (t.x > width * 0.25 && t.x < width * 0.75) {
       bullets.push(new Bullet(ship.x, ship.y));
       if (laserSound) laserSound.play();
-    } else if (t.x < width / 2) {
+    } else if (t.x < width * 0.25) {
       ship.move(-1);
     } else {
       ship.move(1);
@@ -208,7 +201,6 @@ function startGame() {
   bullets = [];
   meteors = [];
   lastScoreForExtraMeteor = 0;
-  explosions = [];
 
   for (let i = 0; i < 10; i++) {
     meteors.push(new Meteor());
@@ -217,7 +209,16 @@ function startGame() {
 }
 
 function resetGame() {
-  startGame();
+  gameOver = false;
+  score = 0;
+  bullets = [];
+  meteors = [];
+  lastScoreForExtraMeteor = 0;
+
+  for (let i = 0; i < 10; i++) {
+    meteors.push(new Meteor());
+  }
+  ship = new Ship();
 }
 
 class Ship {
@@ -238,21 +239,17 @@ class Ship {
   }
 
   update() {
-    this.x += this.direction * 8; // velocidade aumentada
+    this.x += this.direction * (isMobile ? 10 : 6); // aumento de velocidade
     this.x = constrain(this.x, this.size, width - this.size);
   }
 }
 
 class Meteor {
   constructor(aimAtShip = false) {
-    if (aimAtShip) {
-      this.x = ship.x + random(-100, 100);
-    } else {
-      this.x = random(width);
-    }
+    this.x = aimAtShip ? ship.x + random(-100, 100) : random(width);
     this.y = random(-100, -40);
-    this.r = random(20, 40) * mobileFactor;
-    this.speed = random(3, 6) * mobileFactor;
+    this.r = random(20, 40) * mobileMeteorFactor;
+    this.speed = random(2, 5) * mobileMeteorFactor;
   }
 
   move() {
@@ -265,8 +262,8 @@ class Meteor {
   reset() {
     this.x = random(width);
     this.y = random(-100, -40);
-    this.r = random(20, 40) * mobileFactor;
-    this.speed = random(3, 6) * mobileFactor;
+    this.r = random(20, 40) * mobileMeteorFactor;
+    this.speed = random(2, 5) * mobileMeteorFactor;
   }
 
   show() {
@@ -288,7 +285,7 @@ class Bullet {
   }
 
   move() {
-    this.y -= 10; // tiro mais rápido
+    this.y -= isMobile ? 14 : 9;
   }
 
   show() {
@@ -300,26 +297,5 @@ class Bullet {
   hits(meteor) {
     let d = dist(this.x, this.y, meteor.x, meteor.y);
     return d < this.r + meteor.r;
-  }
-}
-
-class Explosion {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.life = 20; // duração da explosão
-  }
-
-  update() {
-    this.life--;
-  }
-
-  show() {
-    imageMode(CENTER);
-    image(explosionImage, this.x, this.y, 60, 60);
-  }
-
-  finished() {
-    return this.life <= 0;
   }
 }
