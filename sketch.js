@@ -22,9 +22,8 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileMeteorFactor = isMobile ? 2 : 1; // meteoro e tiro mais rápidos no celular
+  mobileMeteorFactor = isMobile ? 1.8 : 1;
 
   ship = new Ship();
 
@@ -45,7 +44,6 @@ function setup() {
 function draw() {
   background(0);
 
-  noStroke();
   for (let star of stars) {
     fill(star.brightness);
     ellipse(star.x, star.y, star.r * 2);
@@ -61,13 +59,11 @@ function draw() {
     textAlign(CENTER);
     textSize(28);
     text("Clique na tela ou pressione ESPAÇO para iniciar", width / 2, height / 2 - 60);
-
     textSize(18);
     text("📱 Controles no Celular:", width / 2, height / 2);
     text("Toque na parte de cima da tela para atirar", width / 2, height / 2 + 25);
     text("Toque no lado esquerdo para mover à esquerda", width / 2, height / 2 + 45);
     text("Toque no lado direito para mover à direita", width / 2, height / 2 + 65);
-
     text("⌨️ Controles no Teclado:", width / 2, height / 2 + 100);
     text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 120);
     text("Barra de espaço para atirar", width / 2, height / 2 + 140);
@@ -79,7 +75,6 @@ function draw() {
     textSize(36);
     textAlign(CENTER);
     text("Game Over", width / 2, height / 2);
-
     fill(255);
     textSize(16);
     text("Toque para atirar ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
@@ -122,10 +117,16 @@ function draw() {
           lastScoreForExtraMeteor = score;
         }
 
-        meteors.splice(j, 1); // Remove meteoro atingido
-        bullets.splice(i, 1); // Remove tiro após impacto
+        meteors.splice(j, 1);
+        meteors.push(new Meteor());
+        bullets.splice(i, 1); // remove o tiro também
         break;
       }
+    }
+
+    // remove tiros fora da tela
+    if (b.y < 0) {
+      bullets.splice(i, 1);
     }
   }
 
@@ -239,7 +240,10 @@ class Ship {
   }
 
   update() {
-    const speed = isMobile ? 10 : 6; // velocidade aumentada
+    const baseSpeed = isMobile ? 10 : 6;
+    const extraSpeed = floor(score / 10);
+    const speed = baseSpeed + extraSpeed;
+
     this.x += this.direction * speed;
     this.x = constrain(this.x, this.size, width - this.size);
   }
@@ -287,7 +291,10 @@ class Bullet {
     this.x = x;
     this.y = y;
     this.r = 5;
-    this.speed = isMobile ? 15 : 7; // velocidade maior no celular
+
+    const baseSpeed = isMobile ? 15 : 7;
+    const extraSpeed = floor(score / 15);
+    this.speed = baseSpeed + extraSpeed;
   }
 
   move() {
