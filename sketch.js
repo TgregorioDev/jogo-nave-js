@@ -1,12 +1,11 @@
 let ship;
 let meteors = [];
 let bullets = [];
-let explosions = [];
-let explosionImage;
 let explosionSound;
 let laserSound;
 let meteorImage;
 let spaceshipImage;
+let explosionImage;
 let gameOver = false;
 let gameStarted = false;
 let score = 0;
@@ -20,7 +19,7 @@ function preload() {
   explosionSound = loadSound("explosion.mp3");
   meteorImage = loadImage("meteoro.png");
   spaceshipImage = loadImage("spaceship.png");
-  explosionImage = loadImage("explode.png"); // imagem que você enviou
+  explosionImage = loadImage("explode.png"); // nova imagem de explosão
 }
 
 function setup() {
@@ -31,12 +30,7 @@ function setup() {
   ship = new Ship();
 
   for (let i = 0; i < 200; i++) {
-    stars.push({
-      x: random(width),
-      y: random(height),
-      r: random(0.5, 2),
-      brightness: random(150, 255)
-    });
+    stars.push({ x: random(width), y: random(height), r: random(0.5, 2), brightness: random(150, 255) });
   }
 
   for (let i = 0; i < 10; i++) {
@@ -47,10 +41,9 @@ function setup() {
 function draw() {
   background(0);
 
-  // Estrelas
-  noStroke();
   for (let star of stars) {
     fill(star.brightness);
+    noStroke();
     ellipse(star.x, star.y, star.r * 2);
     star.y += star.r * 0.2;
     if (star.y > height) {
@@ -60,13 +53,7 @@ function draw() {
   }
 
   if (!gameStarted) {
-    fill(255);
-    textAlign(CENTER);
-    textSize(28);
-    text("Toque no centro da tela para atirar", width / 2, height / 2 - 40);
-    text("Toque nas bordas para mover", width / 2, height / 2);
-    textSize(18);
-    text("Pressione ESPAÇO para jogar no teclado", width / 2, height / 2 + 40);
+    showInstructions();
     return;
   }
 
@@ -77,7 +64,7 @@ function draw() {
     text("Game Over", width / 2, height / 2);
     fill(255);
     textSize(16);
-    text("Toque no centro ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
+    text("Toque ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
     text("Score: " + score, width / 2, height / 2 + 70);
     return;
   }
@@ -85,9 +72,20 @@ function draw() {
   ship.show();
   ship.update();
 
-  for (let m of meteors) {
+  // Mostrar e atualizar meteoros
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    let m = meteors[i];
     m.move();
     m.show();
+
+    if (m.exploding) {
+      m.explosionTimer--;
+      if (m.explosionTimer <= 0) {
+        meteors.splice(i, 1);
+        meteors.push(new Meteor());
+      }
+      continue;
+    }
 
     if (m.hits(ship)) {
       gameOver = true;
@@ -100,39 +98,19 @@ function draw() {
     b.show();
 
     for (let j = meteors.length - 1; j >= 0; j--) {
-      if (b.hits(meteors[j])) {
+      let m = meteors[j];
+      if (!m.exploding && b.hits(m)) {
         explosionSound.play();
 
-        // Adiciona explosão
-        explosions.push(new Explosion(meteors[j].x, meteors[j].y));
+        m.exploding = true;
+        m.explosionTimer = 15; // ~0.25 segundos
+        m.speed = 0;
 
         score += 10;
 
-        if (score % 10 === 0) {
-          for (let m of meteors) {
-            m.speed = min(m.speed + 0.3, 10);
-          }
-        }
-
-        if (score - lastScoreForExtraMeteor >= 15) {
-          meteors.push(new Meteor(true));
-          lastScoreForExtraMeteor = score;
-        }
-
-        meteors.splice(j, 1);
-        meteors.push(new Meteor());
         bullets.splice(i, 1);
         break;
       }
-    }
-  }
-
-  // Atualiza e mostra explosões
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    explosions[i].update();
-    explosions[i].show();
-    if (explosions[i].finished()) {
-      explosions.splice(i, 1);
     }
   }
 
@@ -142,52 +120,26 @@ function draw() {
 }
 
 function keyPressed() {
-  if (!gameStarted && key === ' ') {
-    startGame();
-    return;
-  }
+  if (!gameStarted && key === ' ') return startGame();
+  if (gameOver && key === ' ') return resetGame();
 
-  if (gameOver && key === ' ') {
-    resetGame();
-    return;
-  }
-
-  if (keyCode === RIGHT_ARROW) {
-    ship.move(1);
-  } else if (keyCode === LEFT_ARROW) {
-    ship.move(-1);
-  } else if (key === ' ') {
-    bullets.push(new Bullet(ship.x, ship.y));
-    if (laserSound) laserSound.play();
-  }
+  if (keyCode === RIGHT_ARROW) ship.move(1);
+  else if (keyCode === LEFT_ARROW) ship.move(-1);
+  else if (key === ' ') shoot();
 }
 
 function keyReleased() {
-  if (keyCode === RIGHT_ARROW || keyCode === LEFT_ARROW) {
-    ship.move(0);
-  }
+  if (keyCode === RIGHT_ARROW || keyCode === LEFT_ARROW) ship.move(0);
 }
 
 function touchStarted() {
   for (let t of touches) {
-    if (!gameStarted) {
-      startGame();
-      return false;
-    }
+    if (!gameStarted) return startGame();
+    if (gameOver) return resetGame();
 
-    if (gameOver) {
-      resetGame();
-      return false;
-    }
-
-    if (t.x > width * 0.3 && t.x < width * 0.7) {
-      bullets.push(new Bullet(ship.x, ship.y));
-      if (laserSound) laserSound.play();
-    } else if (t.x < width / 2) {
-      ship.move(-1);
-    } else {
-      ship.move(1);
-    }
+    if (t.x < width * 0.25) ship.move(-1);
+    else if (t.x > width * 0.75) ship.move(1);
+    else shoot();
   }
   return false;
 }
@@ -196,9 +148,9 @@ function touchEnded() {
   ship.move(0);
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
-  ship = new Ship();
+function shoot() {
+  bullets.push(new Bullet(ship.x, ship.y));
+  if (laserSound) laserSound.play();
 }
 
 function startGame() {
@@ -208,7 +160,6 @@ function startGame() {
   bullets = [];
   meteors = [];
   lastScoreForExtraMeteor = 0;
-  explosions = [];
 
   for (let i = 0; i < 10; i++) {
     meteors.push(new Meteor());
@@ -219,6 +170,26 @@ function startGame() {
 function resetGame() {
   startGame();
 }
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+
+function showInstructions() {
+  fill(255);
+  textAlign(CENTER);
+  textSize(28);
+  text("Toque na tela ou pressione ESPAÇO para iniciar", width / 2, height / 2 - 60);
+  textSize(18);
+  text("📱 No celular:", width / 2, height / 2);
+  text("Toque no meio para atirar", width / 2, height / 2 + 25);
+  text("Toque nas laterais para mover", width / 2, height / 2 + 45);
+  text("⌨️ No teclado:", width / 2, height / 2 + 80);
+  text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 100);
+  text("Barra de espaço para atirar", width / 2, height / 2 + 120);
+}
+
+// ==== CLASSES ====
 
 class Ship {
   constructor() {
@@ -238,28 +209,24 @@ class Ship {
   }
 
   update() {
-    this.x += this.direction * 8; // velocidade aumentada
+    this.x += this.direction * 7;
     this.x = constrain(this.x, this.size, width - this.size);
   }
 }
 
 class Meteor {
-  constructor(aimAtShip = false) {
-    if (aimAtShip) {
-      this.x = ship.x + random(-100, 100);
-    } else {
-      this.x = random(width);
-    }
+  constructor() {
+    this.x = random(width);
     this.y = random(-100, -40);
     this.r = random(20, 40) * mobileFactor;
     this.speed = random(3, 6) * mobileFactor;
+    this.exploding = false;
+    this.explosionTimer = 0;
   }
 
   move() {
-    this.y += this.speed;
-    if (this.y > height + this.r) {
-      this.reset();
-    }
+    if (!this.exploding) this.y += this.speed;
+    if (this.y > height + this.r) this.reset();
   }
 
   reset() {
@@ -267,11 +234,17 @@ class Meteor {
     this.y = random(-100, -40);
     this.r = random(20, 40) * mobileFactor;
     this.speed = random(3, 6) * mobileFactor;
+    this.exploding = false;
+    this.explosionTimer = 0;
   }
 
   show() {
     imageMode(CENTER);
-    image(meteorImage, this.x, this.y, this.r * 2, this.r * 2);
+    if (this.exploding) {
+      image(explosionImage, this.x, this.y, this.r * 2, this.r * 2);
+    } else {
+      image(meteorImage, this.x, this.y, this.r * 2, this.r * 2);
+    }
   }
 
   hits(ship) {
@@ -288,7 +261,7 @@ class Bullet {
   }
 
   move() {
-    this.y -= 10; // tiro mais rápido
+    this.y -= 9;
   }
 
   show() {
@@ -300,26 +273,5 @@ class Bullet {
   hits(meteor) {
     let d = dist(this.x, this.y, meteor.x, meteor.y);
     return d < this.r + meteor.r;
-  }
-}
-
-class Explosion {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-    this.life = 20; // duração da explosão
-  }
-
-  update() {
-    this.life--;
-  }
-
-  show() {
-    imageMode(CENTER);
-    image(explosionImage, this.x, this.y, 60, 60);
-  }
-
-  finished() {
-    return this.life <= 0;
   }
 }
