@@ -3,25 +3,33 @@ let meteors = [];
 let bullets = [];
 let explosionSound;
 let laserSound;
+let meteorImage;
+let spaceshipImage;
 let gameOver = false;
+let gameStarted = false;
 let score = 0;
+let lastScoreForExtraMeteor = 0;
+let stars = [];
 
 function preload() {
   laserSound = loadSound("laser.mp3");
   explosionSound = loadSound("explosion.mp3");
+  meteorImage = loadImage("meteoro.png");
+  spaceshipImage = loadImage("spaceship.png"); // ⬅️ Carrega imagem da nave
 }
 
 function setup() {
-  createCanvas(400, 600);
-  resetGame();
-}
-
-function resetGame() {
+  createCanvas(windowWidth, windowHeight);
   ship = new Ship();
-  meteors = [];
-  bullets = [];
-  gameOver = false;
-  score = 0;
+
+  for (let i = 0; i < 200; i++) {
+    stars.push({
+      x: random(width),
+      y: random(height),
+      r: random(0.5, 2),
+      brightness: random(150, 255)
+    });
+  }
 
   for (let i = 0; i < 5; i++) {
     meteors.push(new Meteor());
@@ -31,15 +39,46 @@ function resetGame() {
 function draw() {
   background(0);
 
+  // Estrelas
+  noStroke();
+  for (let star of stars) {
+    fill(star.brightness);
+    ellipse(star.x, star.y, star.r * 2);
+    star.y += star.r * 0.2;
+    if (star.y > height) {
+      star.y = 0;
+      star.x = random(width);
+    }
+  }
+
+  if (!gameStarted) {
+    fill(255);
+    textAlign(CENTER);
+    textSize(28);
+    text("Clique na tela ou pressione ESPAÇO para iniciar", width / 2, height / 2 - 60);
+
+    textSize(18);
+    text("📱 Controles no Celular:", width / 2, height / 2);
+    text("Toque na parte de cima da tela para atirar", width / 2, height / 2 + 25);
+    text("Toque no lado esquerdo para mover à esquerda", width / 2, height / 2 + 45);
+    text("Toque no lado direito para mover à direita", width / 2, height / 2 + 65);
+
+    text("⌨️ Controles no Teclado:", width / 2, height / 2 + 100);
+    text("Setas ⬅️ ➡️ para mover", width / 2, height / 2 + 120);
+    text("Barra de espaço para atirar", width / 2, height / 2 + 140);
+    return;
+  }
+
   if (gameOver) {
     fill(255, 0, 0);
     textSize(36);
     textAlign(CENTER);
     text("Game Over", width / 2, height / 2);
-    textSize(20);
-    text("Score: " + score, width / 2, height / 2 + 40);
+
+    fill(255);
     textSize(16);
-    text("Pressione ESPAÇO ou Toque para recomeçar", width / 2, height / 2 + 80);
+    text("Toque para atirar ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
+    text("Score: " + score, width / 2, height / 2 + 70);
     return;
   }
 
@@ -63,15 +102,19 @@ function draw() {
     for (let j = meteors.length - 1; j >= 0; j--) {
       if (b.hits(meteors[j])) {
         explosionSound.play();
-        // Pontuação adaptativa
+
         let pontos = round((6 - meteors[j].speed) + (40 - meteors[j].r) / 5);
         score += pontos;
 
-        // Dificuldade progressiva
         if (score % 10 === 0) {
           for (let m of meteors) {
-            m.speed += 0.3;
+            m.speed = min(m.speed + 0.3, 10);
           }
+        }
+
+        if (score - lastScoreForExtraMeteor >= 15) {
+          meteors.push(new Meteor(true));
+          lastScoreForExtraMeteor = score;
         }
 
         meteors.splice(j, 1);
@@ -88,11 +131,16 @@ function draw() {
 }
 
 function keyPressed() {
+  if (!gameStarted && key === ' ') {
+    startGame();
+    return;
+  }
+
   if (gameOver && key === ' ') {
     resetGame();
     return;
   }
-  
+
   if (keyCode === RIGHT_ARROW) {
     ship.move(1);
   } else if (keyCode === LEFT_ARROW) {
@@ -110,12 +158,17 @@ function keyReleased() {
 }
 
 function touchStarted() {
-  if (gameOver) {
-    resetGame();
-    return false;
-  }
-  
   for (let t of touches) {
+    if (!gameStarted) {
+      startGame();
+      return false;
+    }
+
+    if (gameOver && t.y < height / 3) {
+      resetGame();
+      return false;
+    }
+
     if (t.y < height / 3) {
       bullets.push(new Bullet(ship.x, ship.y));
       if (laserSound) laserSound.play();
@@ -132,21 +185,49 @@ function touchEnded() {
   ship.move(0);
 }
 
-// Classe da Nave
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  ship = new Ship();
+}
+
+function startGame() {
+  gameStarted = true;
+  gameOver = false;
+  score = 0;
+  bullets = [];
+  meteors = [];
+  lastScoreForExtraMeteor = 0;
+
+  for (let i = 0; i < 5; i++) {
+    meteors.push(new Meteor());
+  }
+  ship = new Ship();
+}
+
+function resetGame() {
+  gameOver = false;
+  score = 0;
+  bullets = [];
+  meteors = [];
+  lastScoreForExtraMeteor = 0;
+
+  for (let i = 0; i < 5; i++) {
+    meteors.push(new Meteor());
+  }
+  ship = new Ship();
+}
+
 class Ship {
   constructor() {
     this.x = width / 2;
-    this.y = height - 20;
-    this.size = 20;
+    this.y = height - 60;
+    this.size = 40;
     this.direction = 0;
   }
 
   show() {
-    fill(0, 255, 0);
-    noStroke();
-    triangle(this.x, this.y - this.size,
-             this.x - this.size, this.y + this.size,
-             this.x + this.size, this.y + this.size);
+    imageMode(CENTER);
+    image(spaceshipImage, this.x, this.y, this.size * 2, this.size * 2);
   }
 
   move(dir) {
@@ -159,14 +240,13 @@ class Ship {
   }
 }
 
-// Classe do Meteoro
 class Meteor {
-  constructor() {
-    this.reset();
-  }
-
-  reset() {
-    this.x = random(width);
+  constructor(aimAtShip = false) {
+    if (aimAtShip) {
+      this.x = ship.x + random(-100, 100);
+    } else {
+      this.x = random(width);
+    }
     this.y = random(-100, -40);
     this.r = random(20, 40);
     this.speed = random(2, 5);
@@ -179,19 +259,24 @@ class Meteor {
     }
   }
 
+  reset() {
+    this.x = random(width);
+    this.y = random(-100, -40);
+    this.r = random(20, 40);
+    this.speed = random(2, 5);
+  }
+
   show() {
-    fill(150);
-    noStroke();
-    ellipse(this.x, this.y, this.r * 2);
+    imageMode(CENTER);
+    image(meteorImage, this.x, this.y, this.r * 2, this.r * 2);
   }
 
   hits(ship) {
     let d = dist(this.x, this.y, ship.x, ship.y);
-    return d < this.r + ship.size;
+    return d < this.r + ship.size * 0.7;
   }
 }
 
-// Classe do Tiro
 class Bullet {
   constructor(x, y) {
     this.x = x;
