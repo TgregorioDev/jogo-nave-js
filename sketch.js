@@ -61,10 +61,11 @@ function draw() {
   if (!gameStarted) {
     fill(255);
     textAlign(CENTER);
-    textSize(28);
+
+    textSize(getResponsiveTextSize(28));
     text("Clique na tela ou pressione ESPAÇO para iniciar", width / 2, height / 2 - 60);
 
-    textSize(18);
+    textSize(getResponsiveTextSize(18));
     text("📱 Controles no Celular:", width / 2, height / 2);
     text("Toque no centro da tela para atirar", width / 2, height / 2 + 25);
     text("Toque nas bordas para mover a nave", width / 2, height / 2 + 45);
@@ -77,12 +78,12 @@ function draw() {
 
   if (gameOver) {
     fill(255, 0, 0);
-    textSize(36);
+    textSize(getResponsiveTextSize(36));
     textAlign(CENTER);
     text("Game Over", width / 2, height / 2);
 
     fill(255);
-    textSize(16);
+    textSize(getResponsiveTextSize(16));
     text("Toque para atirar ou pressione ESPAÇO para recomeçar", width / 2, height / 2 + 40);
     text("Score: " + score, width / 2, height / 2 + 70);
     text("Recorde: " + highScore, width / 2, height / 2 + 90);
@@ -111,7 +112,6 @@ function draw() {
     for (let j = meteors.length - 1; j >= 0; j--) {
       if (b.hits(meteors[j])) {
         explosionSound.play();
-
         explosions.push(new Explosion(meteors[j].x, meteors[j].y, meteors[j].r));
 
         let pontos = round((6 - meteors[j].speed) + (40 - meteors[j].r) / 5);
@@ -223,6 +223,12 @@ function resetGame() {
   startGame();
 }
 
+function getResponsiveTextSize(baseSize) {
+  if (windowWidth < 500) return baseSize * 1.6;
+  if (windowWidth < 800) return baseSize * 1.3;
+  return baseSize;
+}
+
 class Ship {
   constructor() {
     this.x = width / 2;
@@ -245,11 +251,7 @@ class Ship {
 
 class Meteor {
   constructor(aimAtShip = false) {
-    if (aimAtShip) {
-      this.x = ship.x + random(-100, 100);
-    } else {
-      this.x = random(width);
-    }
+    this.x = aimAtShip ? ship.x + random(-100, 100) : random(width);
     this.y = random(-100, -40);
     this.r = random(20, 40) * mobileMeteorFactor;
     this.speed = random(2, 5) * mobileMeteorFactor;
@@ -300,12 +302,12 @@ class Explosion {
   constructor(x, y, size) {
     this.x = x;
     this.y = y;
-    this.size = size * 2;
+    this.size = size;
     this.timer = 15;
   }
   show() {
     imageMode(CENTER);
-    image(explosionImage, this.x, this.y, this.size, this.size);
+    image(explosionImage, this.x, this.y, this.size * 2, this.size * 2);
     this.timer--;
   }
   finished() {
