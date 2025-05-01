@@ -27,7 +27,7 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   isMobile = /Mobi/.test(navigator.userAgent);
-  mobileMeteorFactor = isMobile ? 1.8 : 1; // aumento maior da dificuldade em mobile
+  mobileMeteorFactor = isMobile ? 1.8 : 1;
 
   highScore = localStorage.getItem("highScore") || 0;
 
@@ -112,7 +112,7 @@ function draw() {
       if (b.hits(meteors[j])) {
         explosionSound.play();
 
-        explosions.push(new Explosion(meteors[j].x, meteors[j].y));
+        explosions.push(new Explosion(meteors[j].x, meteors[j].y, meteors[j].r));
 
         let pontos = round((6 - meteors[j].speed) + (40 - meteors[j].r) / 5);
         score += pontos;
@@ -297,14 +297,15 @@ class Bullet {
 }
 
 class Explosion {
-  constructor(x, y) {
+  constructor(x, y, size) {
     this.x = x;
     this.y = y;
+    this.size = size * 2;
     this.timer = 15;
   }
   show() {
     imageMode(CENTER);
-    image(explosionImage, this.x, this.y, 60, 60);
+    image(explosionImage, this.x, this.y, this.size, this.size);
     this.timer--;
   }
   finished() {
